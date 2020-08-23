@@ -1,0 +1,65 @@
+schema { 
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  asAdmin: AdminQuery
+  @aws_auth(cognito_groups: ["Admin"])
+  
+  asTenant: TenantQuery
+  @aws_auth(cognito_groups: ["Tenant"])
+
+  asServiceArea: ServiceAreaQuery
+  @aws_auth(cognito_groups: ["ServiceArea"])
+}
+
+type Mutation {
+  asAdmin: AdminMutation
+  @aws_auth(cognito_groups: ["Admin"])
+
+  asTenant: TenantMutation
+  @aws_auth(cognito_groups: ["Tenant"])
+
+  asServiceArea: ServiceAreaMutation
+  @aws_auth(cognito_groups: ["ServiceArea"])
+}
+
+type AdminQuery {
+  getTenant(id: ID!): Tenant!
+  getServiceArea(id: ID!): ServiceArea!
+}
+
+type TenantQuery {
+  getMyProfile: Tenant!
+  getMyServiceArea(id: ID!): ServiceArea!
+}
+
+type ServiceAreaQuery {
+  getMyProfile: ServiceArea!
+}
+
+type AdminMutation {
+  addTenant(name: String!): Tenant!
+  addServiceArea(tenantId: ID!, name: String!): ServiceArea!
+}
+
+type TenantMutation {
+  updateMyProfile(name: String!): Tenant!
+  addServiceArea(name: String!): ServiceArea!
+}
+
+type ServiceAreaMutation {
+  updateMyProfile(name: String!): ServiceArea!
+}
+
+type Tenant {
+  id: ID!
+  name: String!
+}
+
+type ServiceArea {
+  id: ID!
+  name: String!
+  tenantId: ID!
+}

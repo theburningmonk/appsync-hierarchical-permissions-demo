@@ -1,0 +1,16 @@
+{
+  "version" : "2018-05-29",
+  "operation" : "UpdateItem",
+  "key": {
+    "id" : $util.dynamodb.toDynamoDBJson($ctx.identity.claims["custom:tenant"])
+  },
+  "update" : {
+    "expression" : "SET #name = :name",
+    "expressionNames" : {
+      "#name" : "name"
+    },
+    "expressionValues" : {
+      ":name" : $util.dynamodb.toDynamoDBJson($ctx.arguments.name)
+    }
+  }
+}

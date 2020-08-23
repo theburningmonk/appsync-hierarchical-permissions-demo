@@ -1,0 +1,179 @@
+service: appsync-hierarchical-permissions-demo
+
+plugins:
+  - serverless-appsync-plugin
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+
+custom:
+  appSync:
+    name: hierarchical-api
+    authenticationType: AMAZON_COGNITO_USER_POOLS
+    userPoolConfig:
+      defaultAction: ALLOW
+      userPoolId: !Ref UserPool
+    mappingTemplates:
+      ### QUERY
+      - type: Query
+        field: asAdmin
+        dataSource: none
+        request: empty.request.vtl
+        response: empty.response.vtl
+      - type: Query
+        field: asTenant
+        dataSource: none
+        request: empty.request.vtl
+        response: empty.response.vtl
+      - type: Query
+        field: asServiceArea
+        dataSource: none
+        request: empty.request.vtl
+        response: empty.response.vtl
+      - type: AdminQuery
+        field: getTenant
+        dataSource: tenantsTable
+      - type: AdminQuery
+        field: getServiceArea
+        dataSource: serviceAreasTable
+      - type: TenantQuery
+        field: getMyProfile
+        dataSource: tenantsTable
+      - type: TenantQuery
+        field: getMyServiceArea
+        dataSource: serviceAreasTable
+      - type: ServiceAreaQuery
+        field: getMyProfile
+        dataSource: serviceAreasTable
+
+      ### MUTATION
+      - type: Mutation
+        field: asAdmin
+        dataSource: none
+        request: empty.request.vtl
+        response: empty.response.vtl
+      - type: Mutation
+        field: asTenant
+        dataSource: none
+        request: empty.request.vtl
+        response: empty.response.vtl
+      - type: Mutation
+        field: asServiceArea
+        dataSource: none
+        request: empty.request.vtl
+        response: empty.response.vtl
+      - type: AdminMutation
+        field: addTenant
+        dataSource: tenantsTable
+      - type: AdminMutation
+        field: addServiceArea
+        dataSource: serviceAreasTable
+      - type: TenantMutation
+        field: updateMyProfile
+        dataSource: tenantsTable
+      - type: TenantMutation
+        field: addServiceArea
+        dataSource: serviceAreasTable
+      - type: ServiceAreaMutation
+        field: updateMyProfile
+        dataSource: serviceAreasTable
+
+    dataSources:
+      - type: NONE
+        name: none
+      - type: AMAZON_DYNAMODB
+        name: tenantsTable
+        config:
+          tableName: !Ref TenantsTable
+      - type: AMAZON_DYNAMODB
+        name: serviceAreasTable
+        config:
+          tableName: !Ref ServiceAreasTable
+
+resources:
+  Resources:
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        AutoVerifiedAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireUppercase: true
+        UsernameAttributes: 
+          - email
+        Schema:
+          - AttributeDataType: String
+            Name: tenant
+            Required: false
+            Mutable: true
+          - AttributeDataType: String
+            Name: serviceArea
+            Required: false
+            Mutable: true
+
+    UserPoolAdminGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        UserPoolId: !Ref UserPool
+        GroupName: Admin
+
+    UserPoolTenantGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        UserPoolId: !Ref UserPool
+        GroupName: Tenant
+
+    UserPoolServiceAreaGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        UserPoolId: !Ref UserPool
+        GroupName: ServiceArea
+
+    WebUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: web_client
+        UserPoolId: !Ref UserPool
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        PreventUserExistenceErrors: ENABLED
+
+    TenantsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+
+    ServiceAreasTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        AttributeDefinitions:
+          - AttributeName: tenantId
+            AttributeType: S
+          - AttributeName: id
+            AttributeType: S
+        GlobalSecondaryIndexes:
+          - IndexName: by-tenantId
+            KeySchema:
+              - AttributeName: tenantId
+                KeyType: HASH
+              - AttributeName: id
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL

@@ -1,0 +1,16 @@
+{
+  "version" : "2018-05-29",
+  "operation" : "Query",
+  "query" : {
+    "expression" : "tenantId = :tenantId AND #id = :id",
+    "expressionNames" : {
+      "#id": "id"
+    },
+    "expressionValues" : {
+      ":tenantId": $util.dynamodb.toDynamoDBJson($ctx.identity.claims["custom:tenant"]),
+      ":id": $util.dynamodb.toDynamoDBJson($ctx.arguments.id)
+    }
+  },
+  "index": "by-tenantId",
+  "limit": 1
+}
